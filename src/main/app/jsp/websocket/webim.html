@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title> WebIM 即时通信</title>
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+
+    <!-- js -->
+    <script type="text/javascript" src="../../resources/js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="../../resources/comm-js/context.js"></script>
+    <script src="../../resources/js/bootstrap.min.js?v=3.3.5"></script>
+    <script src="../../resources/js/date/comm.date.js"></script>
+    <script src="../../resources/js/plugins/toastr.min.js"></script>
+
+    <!--css-->
+    <link href="../../resources/css/bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <link href="../../resources/css/plugins/toastr/toastr.min.css" rel="stylesheet">
+
+    <link href="../../resources/css/font-awesome.min.css?v=4.4.0" rel="stylesheet">
+    <link href="../../resources/css/style.min.css?v=4.0.0" rel="stylesheet"><base target="_blank">
+    <link href="../../resources/js/plugins/layer/layim/layim.css" rel="stylesheet">
+    <link href="../../resources/css/shake/csshake.min.css" rel="stylesheet">
+
+
+    <style>
+        .layui-layer-title{
+            /*height: 7% !important;*/
+            /*padding-top: 3% !important;*/
+            /*font-size: 25px !important;*/
+        }
+        .emotion iframe{
+            position:absolute;
+            z-index:1;
+            left:3%;
+            top:45%;
+            background-color: #ffffff;
+        }
+        .xxim_top{
+            height: 100%;
+        }
+        .user-list{
+            height: 92%;
+            width: 100%;
+            padding-top: 4%;
+            background:#ffffff;
+            font-size: 25px;
+        }
+        .user-list span{
+            padding-left: 20%
+        }
+        .input-group-search{
+            height: 8%;
+            width: 100%;
+            padding-top: 1%;
+        }
+        .input-group-search input{
+            width: 78%;
+            font-size: 18px;
+            float: left;
+            border-radius:10px;
+            margin-left: 2%;
+        }
+        .input-group-search .input-group-btn{
+            width: 30%;
+        }
+        .input-group-search .input-group-btn .btn{
+            font-size: 18px;
+            background-color: rgba(255, 255, 255, 0);
+            border-color: rgba(255, 255, 255, 0);
+            color: #31a1e0;
+        }
+    </style>
+</head>
+
+<body class="gray-bg">
+
+<div class="layim_chatbox" id="layim_chatbox" style="display: none">
+    <div class="layim_header" style="background-color:gainsboro">
+        <span class="header_back"><i class="fa fa-chevron-left"></i></span>
+        <span class="header_name"></span>
+        <a href="" target="_blank" class="layim_seechatlog"><i class="fa fa-comment-o"></i></a>
+    </div>
+    <div class="layim_chatmore" id="layim_chatmore">
+        <ul class="layim_chatlist"></ul>
+    </div>
+    <div class="layim_chat">
+        <div class="layim_chatarea" id="layim_chatarea">
+            <ul class="layim_chatview layim_chatthis"  id="layim_area"></ul>
+        </div>
+
+        <div class="layim_send">
+            <div class="layim_write" id="layim_write" contenteditable="true"></div>
+            <div class="layim_sendbtn" id="layim_sendbtn">发送</div>
+        </div>
+
+        <div class="layim_tool">
+            <i class="layim_addface fa fa-meh-o" title="发送表情"></i>
+            <a href="javascript:;"><i class="layim_addimage fa fa-picture-o" title="上传图片"></i></a>
+            <a href="javascript:;"><i class="layim_addfile fa fa-paperclip" title="上传附件"></i></a>
+            <input  id="userId" hidden="true" value="">
+        </div>
+    </div>
+</div>
+
+<div class="emotion" id="emotion" style="display: none">
+    <iframe id="emotion_ifr" src="./../../jsp/emotion/emotion.html" width="95%" height="35%" ></iframe>
+</div>
+
+<div class="searchMeFriend" style="display: none;width: 100%;height: 100%">
+    <div class="input-group-search">
+        <input type="text" placeholder="按昵称/帐号查找好友" name="search" id="search" class="form-control input-lg">
+        <div class="input-group-btn">
+            <button class="btn btn-lg btn-primary" type="button" id="cancel">
+                取消
+            </button>
+        </div>
+    </div>
+    <div class="user-list">
+
+    </div>
+</div>
+<script type="text/javascript">
+    $(function(){
+
+        //隐藏表情iframe
+        $(document).click(function (event) {
+            var tar = event.target;
+            if (tar.className.indexOf("emotion")=="-1" && tar.className.indexOf("layim_addface")=="-1"){
+                if($("#emotion").css("display")=='block'){
+                    $(".emotion").hide();
+                }
+            }
+//
+//            event.stopPropagation();//阻止事件冒泡
+        });
+
+        //获取参数
+        if($.sml_context.getURLParam("user")==""){
+            location.href="./../../login.html";
+            return;
+        }
+        var user = "";
+        try{
+            user = JSON.parse($.sml_context.getURLParam("user"));
+        }catch(e){
+            location.href="./../../login.html";
+            return;
+        }
+        if(user.userId=="undefined" || user.userId==""){
+            location.href="./../../login.html";
+            return;
+        }
+        //获取登录用户
+        $.sml_context.user.id=user.id;
+        $.sml_context.user.userId=user.userId;
+        $.sml_context.user.name=user.username;
+        $.sml_context.user.description=user.description;
+
+        //初始化页面
+        xxim.view();
+
+        //表情
+        $(".layim_tool .layim_addface").on("click",function(){
+            $("#emotion").show();
+        });
+
+    });
+
+</script>
+
+<script src="../../resources/js/plugins/layer/layim/layim.js"></script>
+<script src="../../resources/js/plugins/layer.js"></script>
+</body>
+
+</html>

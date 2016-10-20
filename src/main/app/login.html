@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh" class="no-js">
+<head>
+
+    <meta charset="utf-8">
+    <title>后台登录</title>
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <!-- js -->
+    <script type="text/javascript" src="./resources/js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="./resources/comm-js/context.js"></script>
+    <script src="./resources/js/bootstrap.min.js?v=3.3.5"></script>
+    <script src="./resources/js/date/comm.date.js"></script>
+    <script src="./resources/js/plugins/toastr.min.js"></script>
+
+    <!--css-->
+    <link href="./resources/css/bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <link href="resources/css/plugins/toastr/toastr.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./resources/css/styles-login.css">
+
+</head>
+
+<body>
+<div class="login">
+  <form>
+    <div class="login__check"><img class="img-circle" src="./resources/img/a3.jpg"></div>
+    <div class="login__form">
+        <div class="login__row">
+            <svg class="login__icon name svg-icon" viewBox="0 0 20 20">
+                <path d="M0,20 a10,8 0 0,1 20,0z M10,0 a4,4 0 0,1 0,8 a4,4 0 0,1 0,-8" />
+            </svg>
+            <input type="number" name="userId" class="login__input name" placeholder="username" required="true"  autocomplete="off"/>
+        </div>
+        <div class="login__row">
+            <svg class="login__icon pass svg-icon" viewBox="0 0 20 20">
+                <path d="M0,20 20,20 20,8 0,8z M10,13 10,16z M4,8 a6,8 0 0,1 12,0" />
+            </svg>
+            <input type="password" name="password" class="login__input pass"  required="true" placeholder="password" autocomplete="off"/>
+        </div>
+        <span id="tips"></span>
+        <button type="button" class="login__submit">登 录</button>
+        <p class="login__signup">还没有账号? &nbsp;<a href="regist.html" id="regist">立刻注册</a></p>
+    </div>
+  </form>
+</div>
+
+
+<div class="iframe">
+
+</div>
+<!-- Javascript -->
+<script type="text/javascript">
+    $(function(){
+        var animating = false, submitPhase1 =400, submitPhase2 = 100, logoutPhase1 = 400, $login = $('.login');
+        function ripple(elem, e) {
+            $('.ripple').remove();
+            var elTop = elem.offset().top, elLeft = elem.offset().left, x = e.pageX - elLeft, y = e.pageY - elTop;
+            var $ripple = $('<div class=\'ripple\'></div>');
+            $ripple.css({
+                top: y,
+                left: x
+            });
+            elem.append($ripple);
+        }
+        //login
+        $(".login__submit").on('click',function (e) {
+            $("#tips").html("");
+
+            var u = $("input[name=userId]");
+            var p = $("input[name=password]");
+            if(u.val() == '' || p.val() ==''){
+                $("#tips").html("用户名或密码不能为空~");
+                return false;
+            }
+
+            if (animating)
+                return;
+            animating = true;
+            var that = this;
+            ripple($(that), e);
+            $(that).addClass('processing');
+
+            //请求
+            var url = $.sml_context.getRequestUrl()+"/user/login";
+            var postData = {};
+            postData.userId = u.val();
+            postData.password = p.val();
+            setTimeout(function(){
+                $.sml_context.ajax(url,false,postData,function(data){
+                    animating = false;
+                    $(that).removeClass('success processing');
+
+                    if(data.success == false){
+                        $("#tips").html(data.msg);
+                    }else{
+                        //获取登录用户
+                        $.sml_context.user.id=data.data.id;
+                        $.sml_context.user.userId=data.data.userId;
+                        $.sml_context.user.name=data.data.username;
+                        $.sml_context.user.description=data.data.description;
+                        //跳转
+                        location.href = 'jsp/websocket/webim.html?user='+JSON.stringify(data.data).toString();
+//                        $login.hide();
+                    }
+                },function(data){
+                    animating = false;
+                    $(that).removeClass('success processing');
+                    $("#tips").html("请求异常！");
+                });
+            },800)
+        });
+        //regist
+//        $("#regist").on('click',function(){
+//        });
+    });
+
+</script>
+
+</body>
+
+</html>

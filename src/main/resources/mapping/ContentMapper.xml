@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sml.websockt.dao.ContentDao" >
+    <resultMap id="BaseResultMap" type="com.sml.websockt.pojo.Content" >
+        <id column="user_id" property="userId" jdbcType="INTEGER" />
+        <result property="userName" column="user_name"/>
+        <result property="content" column="content"/>
+        <result property="createDate" column="createDate"/>
+    </resultMap>
+    <sql id="Base_Column_List" >
+        user_id, user_name, content,createDate,to_user
+    </sql>
+
+    <select id="findContentList" parameterType="com.sml.websockt.pojo.Relation" resultType="com.sml.websockt.pojo.Content">
+        select
+        <include refid="Base_Column_List"/>
+        from t_content where type="1" and ((user_id=#{friendId} and to_user=#{userId}) or (user_id=#{userId} and to_user=#{friendId})) ORDER BY createDate asc
+          LIMIT 0,100
+    </select>
+
+    <!--更新添加好友信息状态-->
+    <update id="editAddFriendMsgStatus" parameterType="com.sml.websockt.pojo.Content">
+        update t_content set type=#{type} where user_id=#{toUser} and to_user=#{userId}
+    </update>
+
+    <select id="findMsgList" parameterType="com.sml.websockt.pojo.Content" resultType="com.sml.websockt.pojo.Content">
+        select
+        <include refid="Base_Column_List"/>
+        from t_content where to_user=#{userId} and type=#{type} GROUP BY user_id,to_user
+    </select>
+
+    <insert id="insertSelective" parameterType="com.sml.websockt.pojo.Content">
+        insert into t_content
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+            <if test="userId != null" >
+                user_id,
+            </if>
+            <if test="userName != null" >
+                user_name,
+            </if>
+            <if test="content != null" >
+                content,
+            </if>
+            <if test="createDate != null" >
+                createDate,
+            </if>
+            <if test="toUser != null" >
+                to_user,
+            </if>
+            <if test="type != null and type != ''">
+                type,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+            <if test="userId != null" >
+                #{userId,jdbcType=INTEGER},
+            </if>
+            <if test="userName != null" >
+                #{userName,jdbcType=VARCHAR},
+            </if>
+            <if test="content != null" >
+                #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="createDate != null" >
+                #{createDate,jdbcType=VARCHAR},
+            </if>
+            <if test="toUser != null" >
+                #{toUser,jdbcType=VARCHAR},
+            </if>
+            <if test="type != null and type != ''" >
+                #{type,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+
+</mapper>

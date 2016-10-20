@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh" class="no-js">
+
+<head>
+    <meta charset="utf-8">
+    <title>添加好友</title>
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <!-- js -->
+    <script type="text/javascript" src="../../resources/js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="../../resources/comm-js/context.js"></script>
+    <script src="../../resources/js/bootstrap.min.js?v=3.3.5"></script>
+    <script src="../../resources/js/date/comm.date.js"></script>
+    <script src="../../resources/js/plugins/toastr.min.js"></script>
+
+    <!--css-->
+    <link href="../../resources/css/bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <link href="../../resources/css/plugins/toastr/toastr.min.css" rel="stylesheet">
+
+    
+    <style>
+        .user-list{
+            height: 70%;
+            width: 100%;
+            text-align: center;
+            padding-top: 4%;
+        }
+        .input-group{
+            margin-top: 1%;
+            height: 30%;
+            width: 100%;
+        }
+        .input-group input{
+            width: 70%;
+            height: 50px;
+            font-size: 18px;
+        }
+        .input-group .input-group-btn{
+            width: 30%;
+        }
+        .input-group .input-group-btn  button{
+            width: 100%;
+            height: 50px;
+            font-size: 21px;
+        }
+        .error-tips{
+            font-size: 25px;
+        }
+        .uList-name{
+            font-size: 25px;
+            padding-left: 5%;
+        }
+        .uList-id{
+            padding-top: 2%;
+        }
+        .uList-id img{
+            height: 15%;
+            width: 15%;
+            font-size: 33px;
+        }
+
+        .layui-layer-dialog{
+            min-width: 60% !important;
+            min-height: 15% !important;
+            top: 34% !important;
+            left: 20% !important;
+        }
+        ul li{
+            list-style-type:none;
+        }
+        ul{
+            margin-left: -26px;
+            font-size: 33px;
+        }
+    </style>
+</head>
+<body>
+<!--<input type="text" hidden="true" id="userName" >-->
+<input type="text" hidden="true" id="userId" >
+<div class="input-group">
+    <input type="text" placeholder="按昵称/帐号查找好友" name="search" id="search" class="form-control input-lg">
+    <div class="input-group-btn">
+        <button class="btn btn-lg btn-primary" type="submit" id="submit">
+            搜索
+        </button>
+    </div>
+</div>
+<div class="user-list">
+
+</div>
+
+<script>
+    $(function(){
+        //获取参数
+        var userId = JSON.parse($.sml_context.getURLParam("userId"));
+        $("#userId").val(userId);
+
+        //search
+        $("#submit").on("click",function(){
+            var url  = $.sml_context.getRequestUrl()+"/user/findUserList";
+            var postData = {};
+            var val = $("#search").val();
+            var uList = $(".user-list");
+            if(!val){
+                return;
+            }
+            postData.username = val;
+            $.sml_context.json(url,postData,function(data){
+                if(!data || data.length==0){
+                    uList.empty();
+                    $(".user-list").css("text-align","center");
+                    uList.append("<span class='error-tips'>未匹配到数据</span>");
+                    return;
+                }
+                $(".user-list").css("text-align","left");
+                uList.empty();
+                var str = '<ul>';
+                for(var j = 0; j < data.length; j++){
+                    str += '<li data-id="'+ data[j].userId +'" class="uList-id"><img src="./../../resources/img/a9.jpg" class="xxim_oneface"><span class="uList-name">'+ data[j].username +'</span></li>';
+                }
+                str += '</ul>';
+                uList.append(str);
+
+                //初始化监听
+                initAddFriend();
+            },function(data){
+                uList.empty();
+                $(".user-list").css("text-align","center");
+                uList.append("<span class='error-tips'>请求异常！</span>");
+            });
+        });
+
+    });
+
+   var initAddFriend = function(){
+        //添加好友
+        $(".uList-id").on("click",function(e){
+            var uName = e.currentTarget.textContent;
+            var friendId = e.currentTarget.getAttribute('data-id');
+            if(friendId == $("#userId").val()){
+                toastr.warning("不能添加自己为好友！");
+                return;
+            }
+
+            //判断是否已经是好友
+            var url = $.sml_context.getRequestUrl()+"/user/isFriend";
+            var postData = {};
+            postData.friendId = friendId;
+            $.sml_context.json(url,postData,function(data){
+                if(data && data.userId != null){
+                    toastr.warning(uName+"已经是您好友！");
+                    return;
+                }
+                //添加
+                parent.layer.confirm('确定要添加'+uName+'为好友吗？', {
+                    btn: ['添加','取消'], //按钮
+                    shade: 0.8
+                }, function(){
+                    parent.layer.closeAll('dialog');
+                    //通知对方
+                    var msgData = {};
+                    msgData.id = parent.$.sml_context.user.userId;
+                    msgData.toUser=friendId;
+                    msgData.message="[添加好友]";
+                    msgData.type="2";
+                    window.parent.websocket.send(JSON.stringify(msgData));
+                    toastr.info("添加消息已经发送给对方,请等待对方同意！");
+                    window.parent.websocket.onmessage = function(event){
+                        var json = JSON.parse(event.data);
+                        if(json.ok == "-2"){
+                            toastr.warning(json.message);
+                            return;
+                        }else if(json.type == "3"){
+                            toastr.info("您与"+json.userName+"已经是好友了");
+                            parent.xxim.getDates(0);
+                            return;
+                        }
+                    }
+                }, function(){});
+
+            },function(data){
+                toastr.warning("请求异常！");
+                return;
+            });
+
+        });
+    }
+
+</script>
+
+</body>
+</html>
